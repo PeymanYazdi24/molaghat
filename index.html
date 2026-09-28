@@ -437,7 +437,7 @@ footer .credit{font-weight:700; color:var(--ink); margin-top:2px}
       <h1 id="w-title"></h1>
       <p class="w-range" id="w-range"></p>
       <div class="w-code">کد جلسه: <b id="w-code"></b></div>
-      <p class="lead" style="margin-inline:auto; margin-top:8px">برای هر روز، نیم‌ساعت‌هایی که می‌توانید در جلسه باشید را علامت بزنید؛ رأی شما فوراً برای همهٔ اعضا نمایش داده می‌شود.</p>
+      <p class="lead" style="margin-inline:auto; margin-top:8px">برای هر روز، نیم‌ساعت‌هایی که می‌توانید در جلسه باشید را علامت بزنید؛ رأی شما برای همهٔ اعضا نمایش داده می‌شود.</p>
       <div class="card">
         <div class="field">
           <label for="in-name">نام شما</label>
@@ -478,7 +478,7 @@ footer .credit{font-weight:700; color:var(--ink); margin-top:2px}
       <span class="pill off" id="live-pill"><i></i><span id="live-text">در حال وصل شدن…</span></span>
       <button class="btn-ghost" id="btn-refresh" style="padding:4px 14px; font-size:12.5px">به‌روزرسانی</button>
     </div>
-    <small class="note">هر ردیف یک روز و هر ستون یک نیم‌ساعت است؛ هرچه خانهٔ جدول پررنگ‌تر باشد، افراد بیشتری می‌توانند در آن حضور داشته باشند.</small>
+    <small class="note">هر ردیف یک روز و هر ستون یک نیم‌ساعت است؛ هرچه خانهٔ جدول پررنگ‌تر باشد، افراد بیشتری می‌توانند در آن حضور داشته باشند. رأی‌های تازه هر چند ثانیه خودکار دریافت می‌شوند.</small>
     <div class="g-stats" id="g-stats"></div>
     <div class="link-row">
       <span>پیوند جلسه:</span>
@@ -540,6 +540,7 @@ const motionOk = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const SLOT_COUNT = 33;           // ۰۷:۰۰ تا ۲۳:۳۰
 const START_MIN  = 420;          // ۷:۰۰
+const POLL_MS    = 5000;         // هر ۵ ثانیه رأی‌های تازه گرفته می‌شود
 const MONTHS = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 const WD  = ['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه'];
 const WDS = ['ش','ی','د','س','چ','پ','ج'];
@@ -619,8 +620,6 @@ const HARD_URL = 'https://qamqcjbojdgfukvesiok.supabase.co';
 const HARD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhbXFjamJvamRnZnVrdmVzaW9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MTc0MjEsImV4cCI6MjEwNjA5MzQyMX0.XCdaebnpdTHm4JKeGZmInDsrd6yo9YCibmXdqLx3sPk';
 
 const LSM = 'molaghat_me_v1';
-let cfg = null, sb = null, channel = null, pollTimer = null;
-function loadCfg(){ cfg = {url: HARD_URL, key: HARD_KEY}; }
 
 /* ================= وضعیت برنامه ================= */
 let meeting = null;   // {code,title,days,start_date}
@@ -715,53 +714,51 @@ function showErr(title, text, hint){
   show('err');
 }
 
-/* ================= لود کتابخانه (سه CDN با چرخش خودکار) ================= */
-function loadLib(){
-  return new Promise((ok, no) => {
-    if (window.supabase && window.supabase.createClient) return ok();
-    const urls = [
-      'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-      'https://unpkg.com/@supabase/supabase-js@2',
-      'https://cdnjs.cloudflare.com/ajax/libs/supabase-js/2.45.4/supabase-js.umd.min.js'
-    ];
-    let i = 0;
-    (function next(){
-      if (i >= urls.length) return no(new Error('cdn'));
-      const s = document.createElement('script');
-      s.src = urls[i++];
-      s.onload = function(){
-        if (window.supabase && window.supabase.createClient) ok();
-        else next();
-      };
-      s.onerror = next;
-      document.head.appendChild(s);
-    })();
+/* ================= کلاینت REST مستقیم (بدون هیچ کتابخانهٔ خارجی) ================= */
+async function rest(method, path, body, prefer){
+  const headers = {
+    'apikey': HARD_KEY,
+    'Authorization': 'Bearer ' + HARD_KEY,
+    'Content-Type': 'application/json'
+  };
+  if (prefer) headers['Prefer'] = prefer;
+  const r = await fetch(HARD_URL + '/rest/v1/' + path, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined
   });
-}
-async function sbInit(){
-  await loadLib();
-  sb = window.supabase.createClient(cfg.url, cfg.key);
+  if (!r.ok){
+    let msg = 'HTTP ' + r.status;
+    try{
+      const j = await r.json();
+      if (j && j.message) msg = j.message;
+      if (j && j.code) msg += ' (' + j.code + ')';
+    }catch(_){}
+    throw new Error(msg);
+  }
+  if (r.status === 204) return null;
+  const text = await r.text();
+  return text ? JSON.parse(text) : null;
 }
 
 /* ================= دیتابیس: خواندن و نوشتن ================= */
 async function fetchMeeting(code){
-  const r = await sb.from('molaghat_meetings').select('*').eq('code', code).maybeSingle();
-  if (r.error) throw new Error(r.error.message);
-  return r.data;
+  const rows = await rest('GET',
+    'molaghat_meetings?select=code,title,days,start_date&code=eq.' + encodeURIComponent(code));
+  return (rows && rows.length) ? rows[0] : null;
 }
 async function fetchVotes(){
-  const r = await sb.from('molaghat_votes').select('code,name,day,slots').eq('code', meeting.code);
-  if (r.error) throw new Error(r.error.message);
+  const rows = await rest('GET',
+    'molaghat_votes?select=name,day,slots&code=eq.' + encodeURIComponent(meeting.code));
   votes = {};
-  (r.data || []).forEach(row => {
+  (rows || []).forEach(row => {
     if (!votes[row.name]) votes[row.name] = {};
     votes[row.name][row.day] = row.slots || {};
   });
 }
 async function saveDay(day, slots){
   const payload = {code: meeting.code, name: me.name, day, slots};
-  const r = await sb.from('molaghat_votes').upsert(payload, {onConflict: 'code,name,day'});
-  if (r.error) throw new Error(r.error.message);
+  await rest('POST', 'molaghat_votes', payload, 'resolution=merge-duplicates,return=minimal');
 }
 function genCode(){
   const AL = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -773,48 +770,36 @@ async function createMeeting(title, startISO, days){
   let lastErr = null;
   for (let t = 0; t < 5; t++){
     const code = genCode();
-    const r = await sb.from('molaghat_meetings').insert({code, title, days, start_date: startISO}).select().single();
-    if (!r.error) return r.data;
-    lastErr = r.error;
-    if (r.error.code !== '23505') break;   // فقط تداخل کد را دوباره امتحان کن
+    try{
+      const rows = await rest('POST', 'molaghat_meetings',
+        {code, title, days, start_date: startISO}, 'return=representation');
+      return (rows && rows.length) ? rows[0] : {code, title, days, start_date: startISO};
+    }catch(e){
+      lastErr = e;
+      if (!/duplicate|unique|23505/i.test(e.message)) throw e;   // فقط تداخل کد را دوباره امتحان کن
+    }
   }
   throw lastErr || new Error('create failed');
 }
 
-/* ================= Realtime + پشتیبان polling ================= */
+/* ================= به‌روزرسانی خودکار (polling هر ۵ ثانیه) ================= */
 function livePill(state, text){
   const p = $('live-pill');
   p.className = 'pill ' + state;
   $('live-text').textContent = text;
 }
-function subscribeLive(){
-  if (channel) { try{ sb.removeChannel(channel); }catch(e){} channel = null; }
-  channel = sb.channel('molaghat-' + meeting.code)
-    .on('postgres_changes', {event:'*', schema:'public', table:'molaghat_votes', filter:'code=eq.'+meeting.code}, p => {
-      if (p.eventType === 'INSERT' || p.eventType === 'UPDATE'){
-        const n = p.new;
-        if (!votes[n.name]) votes[n.name] = {};
-        votes[n.name][n.day] = n.slots || {};
-      } else if (p.eventType === 'DELETE'){
-        const o = p.old || {};
-        if (o.name && votes[o.name]){ delete votes[o.name][o.day]; }
-      }
-      if (!$('v-group').hidden) renderGroup();
-    })
-    .subscribe(state => {
-      if (state === 'SUBSCRIBED') livePill('live', 'همگام زنده');
-      else if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT' || state === 'CLOSED'){
-        livePill('fallback', 'به‌روزرسانی خودکار (بدون زنده)');
-        startPolling();
-      }
-    });
-}
 function startPolling(){
-  if (pollTimer) return;
-  pollTimer = setInterval(async () => {
-    if ($('v-group').hidden) return;
-    try{ await fetchVotes(); renderGroup(); }catch(e){}
-  }, 20000);
+  if (startPolling._t) return;
+  startPolling._t = setInterval(async () => {
+    if (!meeting || $('v-group').hidden) return;
+    try{
+      await fetchVotes();
+      renderGroup();
+      livePill('live', 'به‌روزرسانی خودکار فعال');
+    }catch(e){
+      livePill('bad', 'ارتباط موقتاً قطع؛ در حال تلاش…');
+    }
+  }, POLL_MS);
 }
 
 /* ================= روت‌گذاری ================= */
@@ -829,8 +814,8 @@ async function openMeeting(code){
     const savedMe = localStorage.getItem(LSM);
     me = savedMe ? JSON.parse(savedMe) : null;
     await fetchVotes();
-    subscribeLive();
     startPolling();
+    livePill('live', 'به‌روزرسانی خودکار فعال');
     if (me && votes[me.name]){
       if (allConfirmed()) show('group'); else show('entry');
     } else {
@@ -841,7 +826,9 @@ async function openMeeting(code){
       show('welcome');
     }
   }catch(e){
-    showErr('اتصال برقرار نشد', 'ارتباط با دیتابیس برقرار نشد: ' + e.message + ' — اتصال اینترنت را بررسی کنید و «تلاش دوباره» را بزنید.', HARD_URL);
+    showErr('اتصال برقرار نشد',
+      'ارتباط با دیتابیس برقرار نشد: ' + e.message + ' — اتصال اینترنت را بررسی کنید و «تلاش دوباره» را بزنید.',
+      HARD_URL + '/rest/v1/');
   }
 }
 
@@ -989,6 +976,7 @@ function renderDots(){
   }
 }
 function renderEntry(){
+  if (!meeting || !me) return;
   renderDots();
   $('e-day').textContent = dayName(curDay);
   $('e-sub').textContent = 'روز ' + fa(curDay+1) + ' از ' + fa(meeting.days) + ' · ' + fa(SLOT_COUNT) + ' نیم‌ساعت (۷:۰۰ تا ۲۳:۳۰)';
@@ -1129,6 +1117,7 @@ function heatLevel(y, mx){
   return Math.max(1, Math.round(y / mx * 5));
 }
 function renderGroup(){
+  if (!meeting) return;
   const c = counts();
   const ps = participants();
   let maxY = 0, totalYes = 0, answered = 0;
@@ -1339,15 +1328,13 @@ async function boot(){
   show('setup');
 }
 document.addEventListener('DOMContentLoaded', async () => {
-  loadCfg();
   try{
-    await sbInit();
     await boot();
   }catch(e){
     showErr(
-      'بارگذاری اولیه ناموفق بود',
-      'صفحه از GitHub لود شد ولی کتابخانهٔ همگام‌سازی از سرورهای واسط (CDN) گرفته نشد — این اتفاق در برخی شبکه‌های اینترنت ایران می‌افتد. یک‌بار «تلاش دوباره» را بزنید؛ اگر نشد، با شبکهٔ دیگری (مثلاً وای‌فای خانه به‌جای اینترنت موبایل) امتحان کنید.',
-      'اگر مشکل ادامه داشت، لینک زیر را در همان مرورگر باز کنید و نتیجه را برای طراح بفرستید: ' + HARD_URL + '/rest/v1/'
+      'اتصال به دیتابیس برقرار نشد',
+      'صفحه بارگذاری شد ولی ارتباط با دیتابیس برقرار نشد: ' + e.message + ' — اتصال اینترنت را بررسی کنید و «تلاش دوباره» را بزنید؛ اگر با یک شبکهٔ دیگر هم نشد، از لینک زیر نتیجه را برای طراح بفرستید.',
+      HARD_URL + '/rest/v1/'
     );
   }
 });
