@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ملاقات | هم‌زمان‌یابی جلسه‌ها با تقویم شمسی</title>
+<meta name="description" content="ملاقات: هر عضو زمان‌های آزاد خود را در تقویم شمسی ثبت می‌کند و ساعت‌هایی که بیشترین افراد می‌توانند حضور داشته باشند، پررنگ‌تر دیده می‌شوند.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230E7A5F'/><rect x='7' y='7' width='8' height='8' rx='2' fill='white'/><rect x='17' y='7' width='8' height='8' rx='2' fill='white' opacity='.45'/><rect x='7' y='17' width='8' height='8' rx='2' fill='white' opacity='.45'/><rect x='17' y='17' width='8' height='8' rx='2' fill='white'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<style>
+/* ====== TOKENS ====== */
+:root{
+  --paper:#F7F5F1;
+  --surface:#FFFFFF;
+  --ink:#17332B;
+  --ink-2:#54685F;
+  --line:rgba(23,51,43,.13);
+  --line-strong:rgba(23,51,43,.28);
+  --yes:#0E7A5F;
+  --yes-deep:#0A5D48;
+  --yes-soft:#DDEEE6;
+  --maybe:#B97E12;
+  --maybe-ink:#7A5208;
+  --maybe-soft:#F5E7C8;
+  --bad:#A33B2E;
+  --bad-soft:#F6E3DF;
+  --no:#ECE8E1;
+  --h1:#DDEEE6; --h2:#B7DCCB; --h3:#82C4A9; --h4:#3FA583; --h5:#0E7A5F;
+  --r-card:18px; --r-pill:999px; --r-s:10px;
+  --shadow-pop:0 14px 36px rgba(23,51,43,.18);
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px;
+}
+*{box-sizing:border-box; margin:0; padding:0}
+[hidden]{display:none !important}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Vazirmatn', Tahoma, sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  font-size:15px; line-height:1.9;
+  min-height:100vh;
+}
+::selection{background:var(--yes-soft)}
+:focus-visible{outline:2px solid var(--yes); outline-offset:2px}
+button{font-family:inherit; font-size:inherit; color:inherit; background:none; border:none; cursor:pointer}
+input{font-family:inherit; font-size:inherit; color:inherit}
+
+/* ====== LAYOUT ====== */
+.wrap{max-width:1080px; margin-inline:auto; padding-inline:var(--s4)}
+main.wrap{padding-block:var(--s6) var(--s8)}
+
+/* ====== HEADER ====== */
+.topbar{
+  position:sticky; top:0; z-index:40;
+  background:rgba(247,245,241,.92); backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.topbar-in{display:flex; align-items:center; gap:var(--s4); min-height:64px}
+.brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:20px}
+.brand svg{display:block}
+.meet-meta{display:flex; flex-direction:column; line-height:1.5; min-width:0; margin-inline-start:var(--s2)}
+.meet-meta strong{font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.meet-meta span{font-size:12px; color:var(--ink-2)}
+.tabs{display:flex; gap:var(--s2); margin-inline-start:auto}
+.tabs button, .mnav button{
+  padding:8px 18px; border-radius:var(--r-pill);
+  border:1px solid var(--line); background:var(--surface);
+  font-weight:500; font-size:14px; transition:border-color .25s ease, background .25s ease, color .25s ease;
+}
+.tabs button:hover, .mnav button:hover{border-color:var(--line-strong)}
+.tabs button.on, .mnav button.on{background:var(--ink); color:#fff; border-color:var(--ink)}
+.burger{display:none; margin-inline-start:auto; padding:8px; border-radius:var(--r-s)}
+.burger:hover{background:var(--no)}
+.mnav{
+  position:absolute; inset-inline:var(--s3); top:calc(100% + 6px);
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r-card);
+  padding:var(--s3); display:flex; flex-direction:column; gap:var(--s2);
+  box-shadow:var(--shadow-pop); z-index:50;
+}
+@media (max-width:767px){
+  .tabs{display:none}
+  .burger{display:inline-flex}
+  .meet-meta strong{max-width:38vw}
+}
+
+/* ====== GENERIC UI ====== */
+.card{
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r-card); padding:var(--s5);
+}
+h1{font-size:clamp(26px,4.5vw,36px); font-weight:800; line-height:1.4}
+h2{font-size:21px; font-weight:800; line-height:1.5}
+h3{font-size:16px; font-weight:700}
+.lead{color:var(--ink-2); max-width:56ch}
+.field{display:flex; flex-direction:column; gap:var(--s2)}
+.field > label{font-weight:700; font-size:14px}
+.input{
+  background:var(--paper); border:1px solid var(--line); border-radius:var(--r-s);
+  padding:11px 14px; font-size:15px; width:100%; transition:border-color .25s ease;
+}
+.input:focus{outline:none; border-color:var(--yes); box-shadow:0 0 0 3px var(--yes-soft)}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  background:var(--yes); color:#fff; font-weight:700; font-size:15px;
+  border-radius:var(--r-pill); padding:11px 26px;
+  transition:background .25s ease, transform .15s ease;
+}
+.btn:hover{background:var(--yes-deep)}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+.btn-ghost{
+  display:inline-flex; align-items:center; justify-content:center;
+  background:transparent; color:var(--ink); font-weight:500; font-size:14px;
+  border:1px solid var(--line-strong); border-radius:var(--r-pill); padding:9px 20px;
+  transition:border-color .25s ease, background .25s ease;
+}
+.btn-ghost:hover{background:var(--no)}
+.note{font-size:12.5px; color:var(--ink-2)}
+.badge{
+  display:inline-flex; align-items:center; background:var(--yes-soft); color:var(--yes-deep);
+  font-size:12px; font-weight:700; border-radius:var(--r-pill); padding:3px 12px;
+}
+.pill{
+  display:inline-flex; align-items:center; gap:6px;
+  border-radius:var(--r-pill); padding:4px 14px; font-size:12.5px; font-weight:700;
+}
+.pill i{width:8px; height:8px; border-radius:50%; display:inline-block}
+.pill.live{background:var(--yes-soft); color:var(--yes-deep)} .pill.live i{background:var(--yes)}
+.pill.fallback{background:var(--maybe-soft); color:var(--maybe-ink)} .pill.fallback i{background:var(--maybe)}
+.pill.off{background:var(--no); color:var(--ink-2)} .pill.off i{background:var(--line-strong)}
+.pill.bad{background:var(--bad-soft); color:var(--bad)} .pill.bad i{background:var(--bad)}
+
+/* ====== SETUP ====== */
+.setup-hero{padding-block:var(--s6) var(--s5)}
+.setup-grid{display:grid; gap:var(--s5); margin-top:var(--s5)}
+@media (min-width:900px){ .setup-grid{grid-template-columns:1fr 1fr; align-items:start} }
+.cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--s3)}
+.cal-head b{font-size:15px; font-weight:800}
+.cal-nav{display:flex; gap:6px}
+.cal-nav button{width:34px; height:34px; border-radius:var(--r-s); border:1px solid var(--line); background:var(--surface); font-size:16px; transition:background .25s ease}
+.cal-nav button:hover:not(:disabled){background:var(--no)}
+.cal-nav button:disabled{opacity:.35; cursor:not-allowed}
+.cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px}
+.cal-grid .wd{font-size:11.5px; color:var(--ink-2); text-align:center; padding-block:4px; font-weight:500}
+.cal-day{
+  aspect-ratio:1; border-radius:var(--r-s); font-size:13.5px; font-weight:500;
+  display:grid; place-items:center; transition:background .2s ease;
+}
+.cal-day:hover:not(:disabled){background:var(--yes-soft)}
+.cal-day:disabled{color:rgba(23,51,43,.28); cursor:not-allowed}
+.cal-day.sel{background:var(--yes); color:#fff; font-weight:700}
+.seg{display:flex; gap:6px; flex-wrap:wrap}
+.seg button{
+  min-width:46px; padding:8px 12px; border-radius:var(--r-pill);
+  border:1px solid var(--line); background:var(--surface); font-weight:700;
+  transition:background .2s ease, color .2s ease, border-color .2s ease;
+}
+.seg button:hover{border-color:var(--line-strong)}
+.seg button.on{background:var(--ink); color:#fff; border-color:var(--ink)}
+.day-chips{display:flex; flex-wrap:wrap; gap:8px}
+.day-chips span{
+  background:var(--yes-soft); color:var(--yes-deep); font-size:12.5px; font-weight:500;
+  border-radius:var(--r-pill); padding:5px 13px;
+}
+.share-made{margin-top:var(--s4); padding:var(--s4); background:var(--yes-soft); border-radius:var(--r-card); display:flex; flex-direction:column; gap:10px}
+.share-made code{direction:ltr; display:block; font-family:ui-monospace, Consolas, monospace; font-size:12.5px; word-break:break-all; color:var(--yes-deep)}
+
+/* ====== WELCOME ====== */
+.welcome-box{max-width:560px; margin-inline:auto; text-align:center; padding-block:var(--s7) var(--s8)}
+.welcome-box .card{margin-top:var(--s5); text-align:right; display:flex; flex-direction:column; gap:var(--s4)}
+.w-range{color:var(--ink-2); font-size:14px}
+.w-code{display:inline-flex; align-items:center; gap:8px; background:var(--surface); border:1px dashed var(--line-strong); border-radius:var(--r-pill); padding:5px 16px; font-size:14px; margin-top:8px}
+.w-code b{direction:ltr; letter-spacing:.2em; font-family:ui-monospace, Consolas, monospace}
+
+/* ====== PROGRESS DOTS ====== */
+.dots{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:var(--s4)}
+.dot{
+  display:inline-flex; align-items:center; gap:6px;
+  border:1px solid var(--line); background:var(--surface); border-radius:var(--r-pill);
+  padding:6px 14px; font-size:13px; font-weight:500; transition:border-color .2s ease, background .2s ease;
+}
+.dot:hover:not(:disabled):not(.cur){border-color:var(--line-strong)}
+.dot.ok{background:var(--yes-soft); border-color:transparent; color:var(--yes-deep)}
+.dot.cur{border-color:var(--yes); box-shadow:0 0 0 3px var(--yes-soft); font-weight:700}
+.dot:disabled{opacity:.45; cursor:not-allowed}
+
+/* ====== ENTRY ====== */
+.entry-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 14px; margin-bottom:var(--s2)}
+.entry-head small{color:var(--ink-2); font-size:13px}
+.brushes{display:flex; flex-wrap:wrap; gap:8px; margin-block:var(--s3)}
+.brush{
+  display:inline-flex; align-items:center; gap:8px;
+  border:1px solid var(--line); border-radius:var(--r-pill); background:var(--surface);
+  padding:7px 16px; font-size:13.5px; font-weight:500; transition:border-color .2s ease, box-shadow .2s ease;
+}
+.brush i{width:13px; height:13px; border-radius:4px; display:inline-block}
+.brush:hover{border-color:var(--line-strong)}
+.brush.on{box-shadow:0 0 0 2px var(--ink); border-color:var(--ink); font-weight:700}
+.slot-grid{
+  display:grid; grid-auto-flow:column;
+  grid-template-rows:repeat(11, auto); gap:6px; margin-top:var(--s3);
+}
+@media (min-width:640px){ .slot-grid{grid-template-rows:repeat(9, auto); gap:7px} }
+@media (min-width:1000px){ .slot-grid{grid-template-rows:repeat(7, auto)} }
+.slot{
+  height:37px; border-radius:var(--r-s);
+  border:1px solid var(--line); background:var(--no);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12.5px; font-weight:500; color:var(--ink-2);
+  transition:background .2s ease, color .2s ease, border-color .2s ease, transform .12s ease;
+  animation:cellIn .35s both; animation-delay:calc(var(--i) * 8ms);
+  touch-action:manipulation; user-select:none; -webkit-user-select:none;
+}
+.slot:hover{border-color:var(--line-strong)}
+.slot:active{transform:scale(.97)}
+.slot.st-yes{background:var(--yes); border-color:var(--yes); color:#fff; font-weight:700}
+.slot.st-maybe{
+  background:var(--maybe-soft); border-color:var(--maybe); color:var(--maybe-ink); font-weight:700;
+  background-image:repeating-linear-gradient(45deg, rgba(185,126,18,.14) 0 4px, transparent 4px 9px);
+}
+.entry-foot{
+  display:flex; flex-wrap:wrap; align-items:center; gap:var(--s3);
+  margin-top:var(--s4); padding-top:var(--s4); border-top:1px solid var(--line);
+}
+.entry-foot .grow{flex:1}
+.e-count{font-size:13.5px; color:var(--ink-2)}
+.e-count b{color:var(--yes-deep)}
+@keyframes cellIn{from{opacity:0; transform:scale(.85)} to{opacity:1; transform:none}}
+
+/* ====== GROUP / HEATMAP ====== */
+.g-top{display:flex; flex-wrap:wrap; align-items:center; gap:var(--s3); margin-bottom:var(--s2)}
+.g-stats{display:flex; flex-wrap:wrap; gap:var(--s3) var(--s5); align-items:center; margin-block:var(--s4)}
+.g-stats .stat b{font-size:22px; font-weight:800; color:var(--yes-deep)}
+.g-stats .stat span{display:block; font-size:12.5px; color:var(--ink-2)}
+.link-row{
+  display:flex; flex-wrap:wrap; align-items:center; gap:var(--s2);
+  background:var(--surface); border:1px dashed var(--line-strong); border-radius:var(--r-s);
+  padding:10px 14px; margin-block:var(--s4); font-size:13px;
+}
+.link-row code{direction:ltr; font-family:ui-monospace, Consolas, monospace; font-weight:700; font-size:12px; color:var(--yes-deep); word-break:break-all}
+.legend{display:flex; flex-wrap:wrap; align-items:center; gap:var(--s3); margin-block:var(--s4) var(--s3); font-size:12.5px; color:var(--ink-2)}
+.legend .sw{width:20px; height:14px; border-radius:4px; display:inline-block; vertical-align:middle; margin-inline-start:4px}
+.heat-card{padding:var(--s4) var(--s3); overflow-x:auto}
+.heat{display:flex; flex-direction:column; gap:3px; min-width:680px}
+.heat-row{display:flex; gap:3px; align-items:stretch}
+.heat-head .hcol{height:24px}
+.hcorner{
+  flex:0 0 86px; font-size:11px; color:var(--ink-2);
+  display:flex; align-items:flex-end; padding-bottom:3px;
+  position:sticky; inset-inline-start:0; z-index:3;
+  background:var(--surface); box-shadow:-3px 0 0 var(--surface);
+}
+.hcol{
+  flex:1 1 0; min-width:0; font-size:10.5px; color:var(--ink-2);
+  display:flex; align-items:flex-end; justify-content:center; padding-bottom:2px;
+}
+.hdaylabel{
+  flex:0 0 86px; position:sticky; inset-inline-start:0; z-index:3;
+  background:var(--surface); box-shadow:-3px 0 0 var(--surface);
+  border-inline-end:1px solid var(--line);
+  display:flex; flex-direction:column; justify-content:center; line-height:1.45;
+  padding-inline-end:5px;
+}
+.hdaylabel b{font-size:12px; font-weight:800}
+.hdaylabel span{font-size:10.5px; color:var(--ink-2)}
+.hcell{
+  flex:1 1 0; min-width:0; height:32px; border-radius:5px; border:none; padding:0;
+  transition:transform .15s ease; animation:cellIn .4s both; animation-delay:calc(var(--i) * 3ms);
+}
+.hcell:hover{transform:scale(1.16); z-index:2; position:relative}
+.hcell.h0{background:var(--no)}
+.hcell.h1{background:var(--h1)} .hcell.h2{background:var(--h2)}
+.hcell.h3{background:var(--h3)} .hcell.h4{background:var(--h4)}
+.hcell.h5{background:var(--h5)}
+.hcell.hasMaybe{background-image:repeating-linear-gradient(45deg, rgba(185,126,18,.22) 0 3px, transparent 3px 7px)}
+.hcell.hl{outline:2px solid var(--maybe); outline-offset:1px; z-index:2; position:relative}
+.hb{box-shadow:inset -1px 0 0 rgba(23,51,43,.15)}
+.g-cols{display:grid; gap:var(--s6); margin-top:var(--s6)}
+@media (min-width:900px){ .g-cols{grid-template-columns:3fr 2fr; align-items:start} }
+.best-list{display:flex; flex-direction:column; gap:var(--s3); margin-top:var(--s3)}
+.best-card{
+  text-align:right; background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r-card); padding:var(--s4);
+  display:flex; flex-direction:column; gap:6px;
+  transition:border-color .25s ease, transform .2s ease;
+}
+.best-card:hover{border-color:var(--yes); transform:translateY(-2px)}
+.best-card .b-top{display:flex; align-items:center; justify-content:space-between; gap:8px}
+.best-card .b-day{font-weight:800; font-size:14.5px}
+.best-card .b-time{font-size:20px; font-weight:800; color:var(--yes-deep)}
+.best-card .b-bar{height:6px; border-radius:var(--r-pill); background:var(--no); overflow:hidden}
+.best-card .b-bar i{display:block; height:100%; background:var(--yes); border-radius:var(--r-pill)}
+.best-card .b-count{font-size:12.5px; color:var(--ink-2)}
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:var(--s3)}
+.chip{
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r-pill);
+  padding:5px 14px; font-size:13px; font-weight:500;
+}
+.chip.you{background:var(--yes); border-color:var(--yes); color:#fff; font-weight:700}
+.empty{color:var(--ink-2); font-size:14px; background:var(--surface); border:1px dashed var(--line-strong); border-radius:var(--r-card); padding:var(--s5); text-align:center}
+.err-box{max-width:560px; margin-inline:auto; text-align:center; padding-block:var(--s7)}
+.err-box .card{margin-top:var(--s5)}
+
+/* ====== TOOLTIP / TOAST / MODAL ====== */
+.tip{
+  position:fixed; z-index:70; pointer-events:none;
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r-s);
+  box-shadow:var(--shadow-pop); padding:10px 14px; font-size:12.5px; line-height:1.8; max-width:250px;
+}
+.tip b{font-size:13px}
+.t-yes{color:var(--yes-deep)} .t-maybe{color:var(--maybe-ink)} .t-no{color:var(--ink-2)}
+.toast{
+  position:fixed; bottom:var(--s5); left:50%; transform:translateX(-50%) translateY(8px);
+  background:var(--ink); color:var(--paper); border-radius:var(--r-pill);
+  padding:10px 22px; font-size:14px; z-index:80; opacity:0; pointer-events:none;
+  transition:opacity .3s ease, transform .3s ease;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+.modal{position:fixed; inset:0; z-index:90; background:rgba(23,51,43,.45); display:grid; place-items:center; padding:var(--s4)}
+.modal-box{
+  background:var(--surface); border-radius:var(--r-card); padding:var(--s5);
+  max-width:430px; width:100%; box-shadow:var(--shadow-pop);
+  display:flex; flex-direction:column; gap:var(--s3); animation:cellIn .25s both;
+}
+.modal-box h3{font-size:17px; font-weight:800}
+.modal-btns{display:flex; gap:var(--s2); justify-content:flex-start; margin-top:var(--s2)}
+
+/* ====== FOOTER ====== */
+footer{border-top:1px solid var(--line); padding-block:var(--s5); color:var(--ink-2); font-size:12.5px; text-align:center}
+footer .credit{font-weight:700; color:var(--ink); margin-top:2px}
+
+/* ====== REDUCED MOTION ====== */
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *{animation:none !important; transition:none !important}
+}
+</style>
+</head>
+<body>
+
+<!-- ====== HEADER ====== -->
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <div class="brand">
+      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0E7A5F"/><rect x="7" y="7" width="8" height="8" rx="2" fill="#fff"/><rect x="17" y="7" width="8" height="8" rx="2" fill="#fff" opacity=".45"/><rect x="7" y="17" width="8" height="8" rx="2" fill="#fff" opacity=".45"/><rect x="17" y="17" width="8" height="8" rx="2" fill="#fff"/></svg>
+      ملاقات
+    </div>
+    <div class="meet-meta" id="meet-meta" hidden>
+      <strong id="h-title"></strong>
+      <span id="h-range"></span>
+    </div>
+    <nav class="tabs" aria-label="ناوبری اصلی">
+      <button data-view="entry">ثبت زمان من</button>
+      <button data-view="group">نمای گروهی</button>
+    </nav>
+    <button class="burger" id="burger" aria-expanded="false" aria-controls="mnav" aria-label="منو">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </div>
+  <div class="mnav" id="mnav" hidden>
+    <button data-view="entry">ثبت زمان من</button>
+    <button data-view="group">نمای گروهی</button>
+    <button data-action="logout">خروج / تغییر نام</button>
+    <button data-action="switch">جلسهٔ دیگر</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ====== SETUP (برگزارکننده) ====== -->
+  <section id="v-setup" hidden>
+    <div class="setup-hero">
+      <h1>جلسه‌ای تازه بسازید</h1>
+      <p class="lead">عنوان جلسه، بازهٔ بررسی و تعداد روزها را مشخص کنید. در پایان یک پیوند یکتا می‌گیرید که برای همهٔ اعضا می‌فرستید.</p>
+    </div>
+    <div class="setup-grid">
+      <div class="card field" style="gap:var(--s4)">
+        <div class="field">
+          <label for="in-title">عنوان جلسه</label>
+          <input class="input" id="in-title" type="text" maxlength="60" placeholder="مثلاً: جلسهٔ هماهنگی تیم فروش">
+        </div>
+        <div class="field">
+          <label id="lbl-days">تعداد روزها</label>
+          <div class="seg" id="days-count" role="group" aria-labelledby="lbl-days"></div>
+        </div>
+        <div class="field">
+          <label>روزهای انتخاب‌شده</label>
+          <div class="day-chips" id="setup-days"></div>
+        </div>
+        <button class="btn" id="btn-create">ایجاد جلسه و گرفتن پیوند</button>
+        <div class="share-made" id="share-made" hidden>
+          <h3>جلسه ساخته شد ✅</h3>
+          <p class="note">این پیوند را برای اعضا بفرستید (هرکس با لینک می‌تواند ببیند و رأی دهد):</p>
+          <code id="share-link"></code>
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <button class="btn" id="btn-copylink">کپی پیوند</button>
+            <button class="btn-ghost" id="btn-goentry">رفتن به ثبت زمان من</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="cal-head">
+          <b id="cal-title"></b>
+          <div class="cal-nav">
+            <button id="cal-prev" aria-label="ماه قبل">›</button>
+            <button id="cal-next" aria-label="ماه بعد">‹</button>
+          </div>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <p class="note" style="margin-top:12px">روز شروعِ بازهٔ جلسه را انتخاب کنید (از امروز به بعد).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== ERROR (خطا / جلسهٔ یافت‌نشده) ====== -->
+  <section id="v-err" hidden>
+    <div class="err-box">
+      <h1 id="err-title">مشکلی پیش آمد</h1>
+      <p class="lead" id="err-text" style="margin-inline:auto"></p>
+      <div class="card" style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap">
+        <button class="btn" data-action="switch">جلسهٔ دیگر</button>
+        <button class="btn-ghost" data-action="newmeeting">ساخت جلسهٔ تازه</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== WELCOME ====== -->
+  <section id="v-welcome" hidden>
+    <div class="welcome-box">
+      <h1 id="w-title"></h1>
+      <p class="w-range" id="w-range"></p>
+      <div class="w-code">کد جلسه: <b id="w-code"></b></div>
+      <p class="lead" style="margin-inline:auto; margin-top:8px">برای هر روز، نیم‌ساعت‌هایی که می‌توانید در جلسه باشید را علامت بزنید؛ رأی شما فوراً برای همهٔ اعضا نمایش داده می‌شود.</p>
+      <div class="card">
+        <div class="field">
+          <label for="in-name">نام شما</label>
+          <input class="input" id="in-name" type="text" maxlength="40" placeholder="مثلاً: سارا محمدی">
+        </div>
+        <button class="btn" id="btn-start">شروع ثبت زمان‌ها</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== ENTRY (روزبه‌روز) ====== -->
+  <section id="v-entry" hidden>
+    <div class="dots" id="dots"></div>
+    <div class="entry-head">
+      <h2 id="e-day"></h2>
+      <small id="e-sub"></small>
+    </div>
+    <div class="brushes" role="group" aria-label="قلم انتخاب وضعیت">
+      <button class="brush on" data-brush="yes"><i style="background:var(--yes)"></i>می‌توانم</button>
+      <button class="brush" data-brush="maybe"><i style="background:var(--maybe)"></i>شاید</button>
+      <button class="brush" data-brush="no"><i style="background:var(--line-strong)"></i>نمی‌توانم</button>
+    </div>
+    <div class="slot-grid" id="slot-grid"></div>
+    <p class="note" style="margin-top:10px">با کلیک یا کشیدن وضعیت خانه‌ها را بگذارید؛ ستون‌ها به ترتیب ساعت ادامه دارند و همهٔ ساعت‌ها در یک نما دیده می‌شوند. برای پاک کردن یک خانه، دوباره رویش کلیک کنید.</p>
+    <div class="entry-foot">
+      <button class="btn-ghost" id="e-prev">روز قبل</button>
+      <button class="btn-ghost" id="e-clear">پاک کردن این روز</button>
+      <span class="grow"></span>
+      <span class="e-count" id="e-count"></span>
+      <button class="btn" id="e-confirm">تأیید و روز بعد</button>
+    </div>
+  </section>
+
+  <!-- ====== GROUP VIEW ====== -->
+  <section id="v-group" hidden>
+    <div class="g-top">
+      <h2>نمای گروهی</h2>
+      <span class="pill off" id="live-pill"><i></i><span id="live-text">در حال وصل شدن…</span></span>
+      <button class="btn-ghost" id="btn-refresh" style="padding:4px 14px; font-size:12.5px">به‌روزرسانی</button>
+    </div>
+    <small class="note">هر ردیف یک روز و هر ستون یک نیم‌ساعت است؛ هرچه خانهٔ جدول پررنگ‌تر باشد، افراد بیشتری می‌توانند در آن حضور داشته باشند.</small>
+    <div class="g-stats" id="g-stats"></div>
+    <div class="link-row">
+      <span>پیوند جلسه:</span>
+      <code id="link-text"></code>
+      <button class="btn-ghost" id="btn-copy" style="padding:4px 14px; font-size:12.5px">کپی</button>
+    </div>
+    <div class="legend">
+      <span>تراکم حضور:</span>
+      <span><i class="sw" style="background:var(--h1)"></i>کم</span>
+      <span><i class="sw" style="background:var(--h3)"></i></span>
+      <span><i class="sw" style="background:var(--h5)"></i>زیاد</span>
+      <span><i class="sw" style="background:var(--no); background-image:repeating-linear-gradient(45deg, rgba(185,126,18,.22) 0 3px, transparent 3px 7px)"></i>خط‌های کهربایی = رأی «شاید»</span>
+    </div>
+    <div class="card heat-card">
+      <div class="heat" id="heat"></div>
+    </div>
+    <div class="g-cols">
+      <div>
+        <h3>بهترین زمان‌های پیشنهادی</h3>
+        <div class="best-list" id="best-list"></div>
+      </div>
+      <div>
+        <h3>شرکت‌کنندگان</h3>
+        <div class="chips" id="chips"></div>
+        <p class="note" style="margin-top:16px">برای دیدن اسامیِ هر خانه، نشانگر را روی خانه‌های جدول ببرید یا روی آن‌ها ضربه بزنید.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <div>ملاقات — هم‌زمان‌یابی جلسه با تقویم شمسی</div>
+  <div class="credit">ساخته شده توسط پیمان یزدی</div>
+</footer>
+
+<div class="tip" id="tip" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="modal" id="modal" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <h3 id="m-title"></h3>
+    <p id="m-text" style="color:var(--ink-2); font-size:14px"></p>
+    <div class="modal-btns">
+      <button class="btn" id="m-ok"></button>
+      <button class="btn-ghost" id="m-cancel">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= ابزارهای پایه ================= */
+'use strict';
+const FA = '۰۱۲۳۴۵۶۷۸۹';
+const fa = s => String(s).replace(/\d/g, d => FA[d]);
+const pad2 = n => String(n).padStart(2, '0');
+const div = (a,b) => ~~(a/b);
+const mod = (a,b) => a - ~~(a/b)*b;
+const motionOk = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const SLOT_COUNT = 33;           // ۰۷:۰۰ تا ۲۳:۳۰
+const START_MIN  = 420;          // ۷:۰۰
+const MONTHS = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const WD  = ['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه'];
+const WDS = ['ش','ی','د','س','چ','پ','ج'];
+
+function minLabel(m){
+  const hh = Math.floor(m/60), mm = m % 60;
+  return fa(hh) + ':' + fa(pad2(mm));
+}
+function slotLabel(i){ return minLabel(START_MIN + i*30); }
+
+/* ================= تبدیل تاریخ شمسی (جلالی) ================= */
+const BREAKS = [-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178];
+function jalCal(jy){
+  const bl = BREAKS.length, gy = jy + 621;
+  let leapJ = -14, jp = BREAKS[0], jump = 0, n, i, jm;
+  for (i = 1; i < bl; i++){
+    jm = BREAKS[i]; jump = jm - jp;
+    if (jy < jm) break;
+    leapJ += div(jump,33)*8 + div(mod(jump,33),4);
+    jp = jm;
+  }
+  n = jy - jp;
+  leapJ += div(n,33)*8 + div(mod(n,33)+3,4);
+  if (mod(jump,33) === 4 && jump - n === 4) leapJ += 1;
+  const leapG = div(gy,4) - div((div(gy,100)+1)*3,4) - 150;
+  const march = 20 + leapJ - leapG;
+  let nn = n;
+  if (jump - n < 6) nn = n - jump + div(jump+4,33)*33;
+  let leap = mod(mod(nn+1,33)-1,4);
+  if (leap === -1) leap = 4;
+  return {leap, gy, march};
+}
+function g2d(gy, gm, gd){
+  let d = div((gy + div(gm-8,6) + 100100) * 1461, 4) + div(153*mod(gm+9,12)+2, 5) + gd - 34840408;
+  d = d - div(div(gy + 100100 + div(gm-8,6), 100)*3, 4) + 752;
+  return d;
+}
+function d2g(jdn){
+  let j = 4*jdn + 139361631;
+  j = j + div(div(4*jdn + 183187720, 146097)*3, 4)*4 - 3908;
+  const i = div(mod(j,1461),4)*5 + 308;
+  const gd = div(mod(i,153),5) + 1;
+  const gm = mod(div(i,153),12) + 1;
+  const gy = div(j,1461) - 100100 + div(8-gm,6);
+  return {gy, gm, gd};
+}
+function j2d(jy, jm, jd){
+  const r = jalCal(jy);
+  return g2d(r.gy, 3, r.march) + (jm-1)*31 - div(jm,7)*(jm-7) + jd - 1;
+}
+function d2j(jdn){
+  const gy = d2g(jdn).gy;
+  let jy = gy - 621;
+  const r = jalCal(jy);
+  const jdn1f = g2d(gy, 3, r.march);
+  let k = jdn - jdn1f, jm, jd;
+  if (k >= 0){
+    if (k <= 185){ jm = 1 + div(k,31); jd = mod(k,31) + 1; return {jy, jm, jd}; }
+    k -= 186;
+  } else {
+    jy -= 1; k += 179;
+    if (r.leap === 1) k += 1;
+  }
+  jm = 7 + div(k,30); jd = mod(k,30) + 1;
+  return {jy, jm, jd};
+}
+function toJalaali(gy, gm, gd){ return d2j(g2d(gy, gm, gd)); }
+function toGregorian(jy, jm, jd){ return d2g(j2d(jy, jm, jd)); }
+function jMonthLen(jy, jm){
+  if (jm <= 6) return 31;
+  if (jm <= 11) return 30;
+  return jalCal(jy).leap === 0 ? 30 : 29;
+}
+
+/* ================= پیکربندی اتصال (داخل فایل) ================= */
+const HARD_URL = 'https://qamqcjbojdgfukvesiok.supabase.co';
+const HARD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhbXFjamJvamRnZnVrdmVzaW9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MTc0MjEsImV4cCI6MjEwNjA5MzQyMX0.XCdaebnpdTHm4JKeGZmInDsrd6yo9YCibmXdqLx3sPk';
+
+const LSM = 'molaghat_me_v1';
+let cfg = null, sb = null, channel = null, pollTimer = null;
+function loadCfg(){ cfg = {url: HARD_URL, key: HARD_KEY}; }
+
+/* ================= وضعیت برنامه ================= */
+let meeting = null;   // {code,title,days,start_date}
+let me = null;        // {name}
+let votes = {};       // {name: {day: {slot:'yes'|'maybe'}}}
+let curDay = 0, draft = {}, brush = 'yes', painting = false;
+let calY, calM, selDate = null, setupDays = 3;
+
+function parseISO(iso){ const [y,m,d] = iso.split('-').map(Number); return new Date(y, m-1, d); }
+function dateOfDay(i){
+  const s = parseISO(meeting.start_date);
+  const d = new Date(s); d.setDate(s.getDate() + i);
+  return d;
+}
+function jOf(gd){ return toJalaali(gd.getFullYear(), gd.getMonth()+1, gd.getDate()); }
+function dayName(i){
+  const gd = dateOfDay(i), j = jOf(gd);
+  return WD[(gd.getDay()+1)%7] + ' ' + fa(j.jd) + ' ' + MONTHS[j.jm-1];
+}
+function isoOf(gd){ return gd.getFullYear() + '-' + pad2(gd.getMonth()+1) + '-' + pad2(gd.getDate()); }
+function rangeLabel(){
+  const n = meeting.days;
+  const a = jOf(dateOfDay(0)), b = jOf(dateOfDay(n-1));
+  if (n === 1) return dayName(0) + ' ' + fa(a.jy);
+  if (a.jm === b.jm) return fa(a.jd) + ' تا ' + dayName(n-1) + ' ' + fa(b.jy);
+  return dayName(0) + ' تا ' + dayName(n-1) + ' ' + fa(b.jy);
+}
+function shareLink(){
+  return location.origin + location.pathname + '?m=' + meeting.code;
+}
+
+/* ================= رابط‌های عمومی ================= */
+const $ = id => document.getElementById(id);
+let toastTimer = null;
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+let modalCb = null;
+function askModal(title, text, okLabel, cb){
+  $('m-title').textContent = title;
+  $('m-text').textContent = text;
+  $('m-ok').textContent = okLabel;
+  modalCb = cb;
+  $('modal').hidden = false;
+  $('m-ok').focus();
+}
+function closeModal(){ $('modal').hidden = true; modalCb = null; }
+$('m-ok').addEventListener('click', () => { const cb = modalCb; closeModal(); if (cb) cb(); });
+$('m-cancel').addEventListener('click', closeModal);
+$('modal').addEventListener('click', e => { if (e.target === $('modal')) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape'){ closeModal(); closeMenu(); hideTip(); } });
+
+function closeMenu(){ $('mnav').hidden = true; $('burger').setAttribute('aria-expanded','false'); }
+$('burger').addEventListener('click', () => {
+  const open = $('mnav').hidden;
+  $('mnav').hidden = !open;
+  $('burger').setAttribute('aria-expanded', String(open));
+});
+document.addEventListener('click', e => {
+  if (!$('mnav').hidden && !e.target.closest('#mnav') && !e.target.closest('#burger')) closeMenu();
+});
+
+const VIEWS = ['setup','err','welcome','entry','group'];
+function show(v){
+  VIEWS.forEach(x => { $('v-'+x).hidden = x !== v; });
+  document.querySelectorAll('[data-view]').forEach(b => {
+    const on = b.dataset.view === v;
+    b.classList.toggle('on', on);
+    if (on) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
+  });
+  closeMenu();
+  if (v === 'group') renderGroup();
+  if (v === 'entry') renderEntry();
+  updateHeader();
+  window.scrollTo(0, 0);
+}
+function updateHeader(){
+  const on = !!meeting;
+  $('meet-meta').hidden = !on;
+  if (on){
+    $('h-title').textContent = meeting.title;
+    $('h-range').textContent = rangeLabel();
+  }
+}
+function showErr(title, text){
+  $('err-title').textContent = title;
+  $('err-text').textContent = text;
+  show('err');
+}
+
+/* ================= لود کتابخانه و کلاینت ================= */
+function loadLib(){
+  return new Promise((ok, no) => {
+    if (window.supabase && window.supabase.createClient) return ok();
+    const urls = ['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2','https://unpkg.com/@supabase/supabase-js@2'];
+    let i = 0;
+    (function next(){
+      if (i >= urls.length) return no(new Error('cdn'));
+      const s = document.createElement('script');
+      s.src = urls[i++];
+      s.onload = ok;
+      s.onerror = next;
+      document.head.appendChild(s);
+    })();
+  });
+}
+async function sbInit(){
+  await loadLib();
+  sb = window.supabase.createClient(cfg.url, cfg.key);
+}
+
+/* ================= دیتابیس: خواندن و نوشتن ================= */
+async function fetchMeeting(code){
+  const r = await sb.from('molaghat_meetings').select('*').eq('code', code).maybeSingle();
+  if (r.error) throw new Error(r.error.message);
+  return r.data;
+}
+async function fetchVotes(){
+  const r = await sb.from('molaghat_votes').select('code,name,day,slots').eq('code', meeting.code);
+  if (r.error) throw new Error(r.error.message);
+  votes = {};
+  (r.data || []).forEach(row => {
+    if (!votes[row.name]) votes[row.name] = {};
+    votes[row.name][row.day] = row.slots || {};
+  });
+}
+async function saveDay(day, slots){
+  const payload = {code: meeting.code, name: me.name, day, slots};
+  const r = await sb.from('molaghat_votes').upsert(payload, {onConflict: 'code,name,day'});
+  if (r.error) throw new Error(r.error.message);
+}
+function genCode(){
+  const AL = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let c = '';
+  for (let i = 0; i < 5; i++) c += AL[Math.floor(Math.random()*AL.length)];
+  return c;
+}
+async function createMeeting(title, startISO, days){
+  let lastErr = null;
+  for (let t = 0; t < 5; t++){
+    const code = genCode();
+    const r = await sb.from('molaghat_meetings').insert({code, title, days, start_date: startISO}).select().single();
+    if (!r.error) return r.data;
+    lastErr = r.error;
+    if (r.error.code !== '23505') break;   // فقط تداخل کد را دوباره امتحان کن
+  }
+  throw lastErr || new Error('create failed');
+}
+
+/* ================= Realtime + پشتیبان polling ================= */
+function livePill(state, text){
+  const p = $('live-pill');
+  p.className = 'pill ' + state;
+  $('live-text').textContent = text;
+}
+function subscribeLive(){
+  if (channel) { try{ sb.removeChannel(channel); }catch(e){} channel = null; }
+  channel = sb.channel('molaghat-' + meeting.code)
+    .on('postgres_changes', {event:'*', schema:'public', table:'molaghat_votes', filter:'code=eq.'+meeting.code}, p => {
+      if (p.eventType === 'INSERT' || p.eventType === 'UPDATE'){
+        const n = p.new;
+        if (!votes[n.name]) votes[n.name] = {};
+        votes[n.name][n.day] = n.slots || {};
+      } else if (p.eventType === 'DELETE'){
+        const o = p.old || {};
+        if (o.name && votes[o.name]){ delete votes[o.name][o.day]; }
+      }
+      if (!$('v-group').hidden) renderGroup();
+    })
+    .subscribe(state => {
+      if (state === 'SUBSCRIBED') livePill('live', 'همگام زنده');
+      else if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT' || state === 'CLOSED'){
+        livePill('fallback', 'به‌روزرسانی خودکار (بدون زنده)');
+        startPolling();
+      }
+    });
+}
+function startPolling(){
+  if (pollTimer) return;
+  pollTimer = setInterval(async () => {
+    if ($('v-group').hidden) return;
+    try{ await fetchVotes(); renderGroup(); }catch(e){}
+  }, 20000);
+}
+
+/* ================= روت‌گذاری ================= */
+async function openMeeting(code){
+  try{
+    const m = await fetchMeeting(code);
+    if (!m){
+      showErr('جلسه پیدا نشد', 'کد یا پیوند جلسه‌ای که باز کرده‌اید در دیتابیس نیست — ممکن است حذف شده یا آدرس اشتباه باشد.');
+      return;
+    }
+    meeting = m;
+    const savedMe = localStorage.getItem(LSM);
+    me = savedMe ? JSON.parse(savedMe) : null;
+    await fetchVotes();
+    subscribeLive();
+    startPolling();
+    if (me && votes[me.name]){
+      if (allConfirmed()) show('group'); else show('entry');
+    } else {
+      $('w-title').textContent = meeting.title;
+      $('w-range').textContent = rangeLabel();
+      $('w-code').textContent = meeting.code;
+      $('in-name').value = me ? me.name : '';
+      show('welcome');
+    }
+  }catch(e){
+    showErr('اتصال برقرار نشد', 'خطا در ارتباط با دیتابیس: ' + e.message);
+  }
+}
+
+/* ================= نمای راه‌اندازی ================= */
+function initSetup(){
+  const today = new Date();
+  const j = toJalaali(today.getFullYear(), today.getMonth()+1, today.getDate());
+  calY = j.jy; calM = j.jm;
+  const off = (6 - today.getDay() + 7) % 7;
+  selDate = new Date(today); selDate.setDate(today.getDate() + off);
+  const seg = $('days-count');
+  seg.innerHTML = '';
+  for (let n = 2; n <= 7; n++){
+    const b = document.createElement('button');
+    b.textContent = fa(n);
+    b.classList.toggle('on', n === setupDays);
+    b.setAttribute('aria-pressed', String(n === setupDays));
+    b.addEventListener('click', () => {
+      setupDays = n;
+      seg.querySelectorAll('button').forEach((x, idx) => {
+        x.classList.toggle('on', idx + 2 === n);
+        x.setAttribute('aria-pressed', String(idx + 2 === n));
+      });
+      renderSetupDays();
+    });
+    seg.appendChild(b);
+  }
+  renderCal();
+  renderSetupDays();
+}
+function renderCal(){
+  $('cal-title').textContent = MONTHS[calM-1] + ' ' + fa(calY);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tj = toJalaali(today.getFullYear(), today.getMonth()+1, today.getDate());
+  $('cal-prev').disabled = (calY === tj.jy && calM === tj.jm);
+  const grid = $('cal-grid');
+  grid.innerHTML = '';
+  WDS.forEach(w => {
+    const d = document.createElement('div');
+    d.className = 'wd'; d.textContent = w;
+    grid.appendChild(d);
+  });
+  const first = toGregorian(calY, calM, 1);
+  const blanks = (new Date(first.gy, first.gm-1, first.gd).getDay() + 1) % 7;
+  for (let i = 0; i < blanks; i++) grid.appendChild(document.createElement('div'));
+  const len = jMonthLen(calY, calM);
+  for (let day = 1; day <= len; day++){
+    const g = toGregorian(calY, calM, day);
+    const gd = new Date(g.gy, g.gm-1, g.gd);
+    const b = document.createElement('button');
+    b.className = 'cal-day';
+    b.textContent = fa(day);
+    b.disabled = gd < today;
+    if (selDate && gd.getTime() === selDate.getTime()) b.classList.add('sel');
+    b.setAttribute('aria-label', WD[(gd.getDay()+1)%7] + ' ' + fa(day) + ' ' + MONTHS[calM-1]);
+    b.addEventListener('click', () => {
+      selDate = gd;
+      renderCal(); renderSetupDays();
+    });
+    grid.appendChild(b);
+  }
+}
+$('cal-prev').addEventListener('click', () => { calM--; if (calM < 1){ calM = 12; calY--; } renderCal(); });
+$('cal-next').addEventListener('click', () => { calM++; if (calM > 12){ calM = 1; calY++; } renderCal(); });
+function renderSetupDays(){
+  const box = $('setup-days');
+  box.innerHTML = '';
+  const tmp = meeting; meeting = {start_date: isoOf(selDate), days: setupDays};
+  for (let i = 0; i < setupDays; i++){
+    const s = document.createElement('span');
+    s.textContent = dayName(i);
+    box.appendChild(s);
+  }
+  meeting = tmp;
+}
+$('btn-create').addEventListener('click', async () => {
+  const title = $('in-title').value.trim();
+  if (!title){ toast('عنوان جلسه را بنویسید'); $('in-title').focus(); return; }
+  if (!selDate){ toast('روز شروع را از تقویم انتخاب کنید'); return; }
+  const btn = $('btn-create');
+  btn.disabled = true; btn.textContent = 'در حال ساخت…';
+  try{
+    meeting = await createMeeting(title, isoOf(selDate), setupDays);
+    localStorage.removeItem(LSM); me = null;
+    $('share-link').textContent = shareLink();
+    $('share-made').hidden = false;
+    updateHeader();
+    toast('جلسه ساخته شد — پیوند را برای اعضا بفرستید');
+  }catch(e){
+    toast('ساخت جلسه ناموفق: ' + e.message);
+  }finally{
+    btn.disabled = false;
+    if ($('share-made').hidden) btn.textContent = 'ایجاد جلسه و گرفتن پیوند';
+  }
+});
+$('btn-copylink').addEventListener('click', () => copyText(shareLink(), 'پیوند جلسه کپی شد ✅'));
+$('btn-goentry').addEventListener('click', () => { show('welcome'); $('in-name').focus(); });
+
+/* ================= نمای خوش‌آمد ================= */
+$('btn-start').addEventListener('click', async () => {
+  let name = $('in-name').value.trim();
+  if (!name){ toast('نام خود را وارد کنید'); $('in-name').focus(); return; }
+  /* جلوگیری از تداخل نام‌ها: اگر نام تکراری است، شناسهٔ کوتاه اضافه می‌کنیم */
+  const taken = Object.keys(votes).some(n => n === name);
+  if (taken){
+    name = name + ' ·' + fa(String(Math.floor(100 + Math.random()*900)));
+    toast('نام تکراری بود؛ به «' + name + '» تغییر کرد');
+  }
+  me = {name};
+  localStorage.setItem(LSM, JSON.stringify(me));
+  curDay = 0;
+  show('entry');
+  toast('خوش آمدید، ' + name);
+});
+$('in-name').addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-start').click(); });
+
+/* ================= نمای ثبت روزبه‌روز ================= */
+function maxReached(){
+  const mine = votes[me ? me.name : ''] || {};
+  const keys = Object.keys(mine).map(Number);
+  if (!keys.length) return 0;
+  return Math.min(meeting.days - 1, Math.max(...keys) + 1);
+}
+function allConfirmed(){
+  if (!me) return false;
+  const mine = votes[me.name] || {};
+  for (let d = 0; d < meeting.days; d++) if (!(d in mine)) return false;
+  return true;
+}
+function renderDots(){
+  const mr = maxReached();
+  const mine = votes[me.name] || {};
+  const box = $('dots');
+  box.innerHTML = '';
+  for (let d = 0; d < meeting.days; d++){
+    const b = document.createElement('button');
+    b.className = 'dot';
+    const confirmed = (d in mine);
+    if (confirmed) b.classList.add('ok');
+    if (d === curDay) b.classList.add('cur');
+    b.disabled = d > mr;
+    b.textContent = dayName(d) + (confirmed ? ' ✓' : '');
+    b.addEventListener('click', () => { curDay = d; renderEntry(); });
+    box.appendChild(b);
+  }
+}
+function renderEntry(){
+  renderDots();
+  $('e-day').textContent = dayName(curDay);
+  $('e-sub').textContent = 'روز ' + fa(curDay+1) + ' از ' + fa(meeting.days) + ' · ' + fa(SLOT_COUNT) + ' نیم‌ساعت (۷:۰۰ تا ۲۳:۳۰)';
+  draft = {...((votes[me.name] || {})[curDay] || {})};
+  const grid = $('slot-grid');
+  grid.innerHTML = '';
+  for (let s = 0; s < SLOT_COUNT; s++){
+    const b = document.createElement('button');
+    b.className = 'slot';
+    b.style.setProperty('--i', s);
+    b.dataset.s = s;
+    b.innerHTML = '<span>' + slotLabel(s) + '</span>';
+    grid.appendChild(b);
+  }
+  refreshGrid();
+  $('e-prev').disabled = curDay === 0;
+  $('e-confirm').textContent = curDay === meeting.days - 1 ? 'تأیید و پایان' : 'تأیید و روز بعد';
+}
+function refreshGrid(){
+  let y = 0, m = 0;
+  $('slot-grid').querySelectorAll('.slot').forEach(cell => {
+    const s = +cell.dataset.s;
+    const v = draft[s];
+    cell.classList.toggle('st-yes', v === 'yes');
+    cell.classList.toggle('st-maybe', v === 'maybe');
+    cell.setAttribute('aria-label', slotLabel(s) + ' — ' + (v === 'yes' ? 'می‌توانم' : v === 'maybe' ? 'شاید' : 'خالی'));
+    if (v === 'yes') y++;
+    if (v === 'maybe') m++;
+  });
+  $('e-count').innerHTML = 'این روز: <b>' + fa(y) + '</b> نیم‌ساعت «می‌توانم» · ' + fa(m) + ' «شاید»';
+}
+function paintCell(cell){
+  const s = +cell.dataset.s;
+  if (brush === 'no') delete draft[s];
+  else if (draft[s] === brush) delete draft[s];
+  else draft[s] = brush;
+  refreshGrid();
+}
+$('slot-grid').addEventListener('pointerdown', e => {
+  const cell = e.target.closest('.slot');
+  if (!cell) return;
+  painting = true;
+  try{ cell.releasePointerCapture(e.pointerId); }catch(_){}
+  paintCell(cell);
+  e.preventDefault();
+});
+$('slot-grid').addEventListener('pointerover', e => {
+  if (!painting) return;
+  const cell = e.target.closest('.slot');
+  if (cell) paintCell(cell);
+});
+document.addEventListener('pointerup', () => { painting = false; });
+document.querySelectorAll('.brush').forEach(b => {
+  b.addEventListener('click', () => {
+    brush = b.dataset.brush;
+    document.querySelectorAll('.brush').forEach(x => {
+      const on = x === b;
+      x.classList.toggle('on', on);
+      x.setAttribute('aria-pressed', String(on));
+    });
+  });
+});
+$('e-clear').addEventListener('click', () => { draft = {}; refreshGrid(); });
+$('e-prev').addEventListener('click', () => { if (curDay > 0){ curDay--; renderEntry(); } });
+$('e-confirm').addEventListener('click', () => {
+  let y = 0, m = 0;
+  Object.values(draft).forEach(v => { if (v === 'yes') y++; else if (v === 'maybe') m++; });
+  const wasConfirmed = curDay in (votes[me.name] || {});
+  askModal(
+    'تأیید زمان‌های ' + dayName(curDay),
+    fa(y) + ' نیم‌ساعت «می‌توانم» و ' + fa(m) + ' نیم‌ساعت «شاید» ثبت و برای همه ارسال شود؟',
+    'بله، ثبت شود',
+    async () => {
+      const btn = $('e-confirm');
+      btn.disabled = true;
+      try{
+        await saveDay(curDay, {...draft});
+        if (!votes[me.name]) votes[me.name] = {};
+        votes[me.name][curDay] = {...draft};
+        const mr = maxReached();
+        if (!wasConfirmed && curDay < meeting.days - 1 && curDay + 1 <= mr){
+          curDay++;
+          renderEntry();
+          toast('ثبت شد؛ روز بعد');
+        } else {
+          show('group');
+          toast('ثبت شد؛ نمای گروهی به‌روز است');
+        }
+      }catch(e){
+        toast('ذخیره ناموفق: ' + e.message);
+      }finally{
+        btn.disabled = false;
+      }
+    }
+  );
+});
+
+/* ================= نمای گروهی ================= */
+function participants(){
+  const ps = Object.keys(votes).map(n => ({name: n, entries: votes[n], you: me && n === me.name}));
+  if (me && !votes[me.name]) ps.push({name: me.name, entries: {}, you: true});
+  return ps;
+}
+function counts(){
+  const ps = participants(), out = [];
+  for (let d = 0; d < meeting.days; d++){
+    out[d] = [];
+    for (let s = 0; s < SLOT_COUNT; s++){
+      let y = 0, m = 0;
+      ps.forEach(p => {
+        const v = (p.entries[d] || {})[s];
+        if (v === 'yes') y++;
+        else if (v === 'maybe') m++;
+      });
+      out[d][s] = {y, m};
+    }
+  }
+  return out;
+}
+function bestTimes(){
+  const c = counts(), out = [];
+  for (let d = 0; d < meeting.days; d++){
+    let mx = 0;
+    c[d].forEach(x => mx = Math.max(mx, x.y));
+    if (mx === 0) continue;
+    let s = -1;
+    for (let i = 0; i <= SLOT_COUNT; i++){
+      const run = i < SLOT_COUNT && c[d][i].y === mx;
+      if (run && s < 0) s = i;
+      if (!run && s >= 0){ out.push({d, from: s, to: i-1, count: mx}); s = -1; }
+    }
+  }
+  out.sort((a,b) => b.count - a.count || (b.to - b.from) - (a.to - a.from) || a.d - b.d);
+  return out.slice(0, 3);
+}
+function heatLevel(y, mx){
+  if (y === 0 || mx === 0) return 0;
+  return Math.max(1, Math.round(y / mx * 5));
+}
+function renderGroup(){
+  const c = counts();
+  const ps = participants();
+  let maxY = 0, totalYes = 0, answered = 0;
+  c.forEach(row => row.forEach(x => { maxY = Math.max(maxY, x.y); totalYes += x.y; }));
+  ps.forEach(p => { if (Object.keys(p.entries).length) answered++; });
+
+  $('g-stats').innerHTML =
+    '<div class="stat"><b>' + fa(ps.length) + '</b><span>شرکت‌کننده</span></div>' +
+    '<div class="stat"><b>' + fa(answered) + '</b><span>پاسخ ثبت‌شده</span></div>' +
+    '<div class="stat"><b>' + fa(totalYes) + '</b><span>نیم‌ساعت آزاد گروه</span></div>';
+  $('link-text').textContent = shareLink();
+
+  const heat = $('heat');
+  heat.innerHTML = '';
+  const head = document.createElement('div');
+  head.className = 'heat-row heat-head';
+  const corner = document.createElement('div');
+  corner.className = 'hcorner';
+  corner.textContent = 'روز / ساعت';
+  head.appendChild(corner);
+  for (let s = 0; s < SLOT_COUNT; s++){
+    const h = document.createElement('div');
+    h.className = 'hcol' + (s % 2 === 0 ? ' hb' : '');
+    h.textContent = s % 2 === 0 ? fa(Math.floor((START_MIN + s * 30) / 60)) : '';
+    head.appendChild(h);
+  }
+  heat.appendChild(head);
+  for (let d = 0; d < meeting.days; d++){
+    const row = document.createElement('div');
+    row.className = 'heat-row';
+    const lb = document.createElement('div');
+    lb.className = 'hdaylabel';
+    const gd = dateOfDay(d);
+    lb.innerHTML = '<b>' + WDS[(gd.getDay()+1)%7] + '</b><span>' + fa(jOf(gd).jd) + ' ' + MONTHS[jOf(gd).jm-1] + '</span>';
+    row.appendChild(lb);
+    for (let s = 0; s < SLOT_COUNT; s++){
+      const cell = document.createElement('button');
+      const lv = heatLevel(c[d][s].y, maxY);
+      cell.className = 'hcell h' + lv + (c[d][s].m > 0 ? ' hasMaybe' : '') + (s % 2 === 0 ? ' hb' : '');
+      cell.dataset.d = d; cell.dataset.s = s;
+      cell.style.setProperty('--i', d * SLOT_COUNT + s);
+      cell.setAttribute('aria-label',
+        dayName(d) + ' — ' + slotLabel(s) + ' — ' +
+        (c[d][s].y ? fa(c[d][s].y) + ' نفر آزاد' : 'آزادی ندارند') +
+        (c[d][s].m ? '، ' + fa(c[d][s].m) + ' شاید' : ''));
+      row.appendChild(cell);
+    }
+    heat.appendChild(row);
+  }
+
+  const best = bestTimes();
+  const bl = $('best-list');
+  bl.innerHTML = '';
+  if (!answered){
+    bl.innerHTML = '<div class="empty">هنوز کسی زمان ثبت نکرده است؛ پیوند جلسه را برای اعضا بفرستید. با هر ثبت، این جدول خودکار روشن می‌شود.</div>';
+  } else if (!best.length){
+    bl.innerHTML = '<div class="empty">هنوز بازه‌ای که همه آزاد باشند پیدا نشده — نزدیک‌ترین گزینه‌ها را در جدول ببینید.</div>';
+  } else {
+    best.forEach((b, i) => {
+      const card = document.createElement('button');
+      card.className = 'best-card';
+      const pct = ps.length ? Math.round(b.count / ps.length * 100) : 0;
+      card.innerHTML =
+        '<div class="b-top"><span class="b-day">' + dayName(b.d) + '</span>' +
+        (b.count === ps.length ? '<span class="badge">همه می‌توانند</span>' : '') + '</div>' +
+        '<div class="b-time">' + slotLabel(b.from) + ' تا ' + minLabel(START_MIN + (b.to + 1) * 30) + '</div>' +
+        '<div class="b-bar"><i style="width:' + pct + '%"></i></div>' +
+        '<div class="b-count">' + fa(b.count) + ' نفر می‌توانند · پیشنهاد ' + fa(i+1) + '</div>';
+      card.addEventListener('click', () => highlightRange(b.d, b.from, b.to));
+      bl.appendChild(card);
+    });
+  }
+
+  const chips = $('chips');
+  chips.innerHTML = '';
+  ps.forEach(p => {
+    const ch = document.createElement('span');
+    ch.className = 'chip' + (p.you ? ' you' : '');
+    ch.textContent = p.name + (p.you ? ' (شما)' : '');
+    chips.appendChild(ch);
+  });
+}
+function highlightRange(d, from, to){
+  document.querySelectorAll('.hcell.hl').forEach(x => x.classList.remove('hl'));
+  let first = null;
+  for (let s = from; s <= to; s++){
+    const cell = document.querySelector('.hcell[data-d="' + d + '"][data-s="' + s + '"]');
+    if (cell){
+      cell.classList.add('hl');
+      if (!first) first = cell;
+    }
+  }
+  if (first) first.scrollIntoView({block: 'center', behavior: motionOk ? 'smooth' : 'auto'});
+  setTimeout(() => document.querySelectorAll('.hcell.hl').forEach(x => x.classList.remove('hl')), 3200);
+}
+$('btn-refresh').addEventListener('click', async () => {
+  try{
+    await fetchVotes();
+    renderGroup();
+    toast('به‌روزرسانی شد ✅');
+  }catch(e){
+    toast('به‌روزرسانی ناموفق: ' + e.message);
+  }
+});
+function copyText(txt, msg){
+  const done = () => toast(msg);
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(done);
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+    done();
+  }
+}
+$('btn-copy').addEventListener('click', () => copyText(shareLink(), 'پیوند جلسه کپی شد ✅'));
+
+/* ================= ناوبری و اکشن‌ها ================= */
+document.querySelectorAll('[data-view]').forEach(b => {
+  b.addEventListener('click', () => {
+    if (!meeting) return;
+    if (b.dataset.view === 'entry' && !me){ show('welcome'); return; }
+    show(b.dataset.view);
+  });
+});
+document.querySelectorAll('[data-action]').forEach(b => {
+  b.addEventListener('click', () => {
+    closeMenu();
+    const a = b.dataset.action;
+    if (a === 'switch'){
+      const url = location.origin + location.pathname;
+      history.replaceState(null, '', url);
+      meeting = null; me = null; votes = {};
+      localStorage.removeItem(LSM);
+      show('setup');
+    }
+    if (a === 'newmeeting') show('setup');
+    if (a === 'logout'){
+      me = null;
+      localStorage.removeItem(LSM);
+      $('w-title').textContent = meeting.title;
+      $('w-range').textContent = rangeLabel();
+      $('w-code').textContent = meeting.code;
+      $('in-name').value = '';
+      show('welcome');
+    }
+  });
+});
+
+/* ================= تولتیپ جدول حرارتی ================= */
+const tip = $('tip');
+function showTipFor(cell){
+  const d = +cell.dataset.d, s = +cell.dataset.s;
+  const ps = participants();
+  const yes = [], maybe = [];
+  ps.forEach(p => {
+    const v = (p.entries[d] || {})[s];
+    const nm = p.name + (p.you ? ' (شما)' : '');
+    if (v === 'yes') yes.push(nm);
+    else if (v === 'maybe') maybe.push(nm);
+  });
+  let html = '<b>' + slotLabel(s) + '</b> · ' + dayName(d);
+  if (yes.length) html += '<div class="t-yes">آزاد: ' + yes.join('، ') + '</div>';
+  if (maybe.length) html += '<div class="t-maybe">شاید: ' + maybe.join('، ') + '</div>';
+  if (!yes.length && !maybe.length) html += '<div class="t-no">کسی در این نیم‌ساعت آزاد نیست</div>';
+  tip.innerHTML = html;
+  tip.hidden = false;
+  const r = cell.getBoundingClientRect();
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let left = r.left + r.width/2 - w/2;
+  left = Math.max(8, Math.min(left, window.innerWidth - w - 8));
+  let top = r.top - h - 8;
+  if (top < 8) top = r.bottom + 8;
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+}
+function hideTip(){ tip.hidden = true; }
+document.addEventListener('pointerover', e => {
+  const cell = e.target.closest('.hcell');
+  if (cell) showTipFor(cell);
+});
+document.addEventListener('pointerout', e => {
+  if (e.target.closest && e.target.closest('.hcell')) hideTip();
+});
+document.addEventListener('focusin', e => {
+  const cell = e.target.closest('.hcell');
+  if (cell) showTipFor(cell);
+});
+document.addEventListener('focusout', e => {
+  if (e.target.closest && e.target.closest('.hcell')) hideTip();
+});
+window.addEventListener('scroll', hideTip, {passive: true});
+window.addEventListener('resize', hideTip);
+
+/* ================= راه‌اندازی ================= */
+async function boot(){
+  initSetup();
+  const mCode = new URLSearchParams(location.search).get('m');
+  if (mCode){
+    livePill('off', 'در حال وصل شدن…');
+    show('group');
+    await openMeeting(mCode);
+    return;
+  }
+  show('setup');
+}
+document.addEventListener('DOMContentLoaded', async () => {
+  loadCfg();
+  try{
+    await sbInit();
+    await boot();
+  }catch(e){
+    showErr('اتصال برقرار نشد', 'دسترسی به دیتابیس ممکن نشد — اتصال اینترنت را بررسی کنید و صفحه را دوباره بارگذاری کنید.');
+  }
+});
+</script>
+</body>
+</html>
